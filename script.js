@@ -1,3 +1,47 @@
+// Add this to your AuthManager class or as a separate class
+class AppStateManager {
+    constructor() {
+        this.currentPage = 'auth'; // 'auth', 'customer', 'admin'
+        this.selectedService = null;
+        this.currentAdminService = 'bank';
+    }
+
+    saveState() {
+        localStorage.setItem('liveline_app_state', JSON.stringify({
+            currentPage: this.currentPage,
+            selectedService: this.selectedService,
+            currentAdminService: this.currentAdminService
+        }));
+    }
+
+    loadState() {
+        const savedState = localStorage.getItem('liveline_app_state');
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                this.currentPage = state.currentPage || 'auth';
+                this.selectedService = state.selectedService || null;
+                this.currentAdminService = state.currentAdminService || 'bank';
+                return true;
+            } catch (error) {
+                console.error('Error loading app state:', error);
+            }
+        }
+        return false;
+    }
+
+    clearState() {
+        localStorage.removeItem('liveline_app_state');
+        this.currentPage = 'auth';
+        this.selectedService = null;
+        this.currentAdminService = 'bank';
+    }
+}
+
+// Initialize it with your other managers
+const appStateManager = new AppStateManager();
+
+
 class AuthManager {
             constructor() {
                 this.currentUser = null;
@@ -988,6 +1032,8 @@ class AuthManager {
         function showAuthPages() {
             document.getElementById('authContainer').classList.remove('hidden');
             document.getElementById('mainApp').classList.add('hidden');
+            appStateManager.currentPage = 'auth';
+            appStateManager.saveState();
         }
 
         function showMainApp(user) {
@@ -1007,7 +1053,7 @@ class AuthManager {
                 document.getElementById('customerInterface').classList.add('hidden');
                 document.getElementById('adminInterface').classList.remove('hidden');
                 updateAdminDisplay();
-                
+                appStateManager.currentPage = 'admin';
                 // Show admin-specific welcome message
                 setTimeout(() => {
                     queueManager.showNotification(`Admin Dashboard Loaded - Total Users: ${authManager.users.size}`);
@@ -1020,7 +1066,7 @@ class AuthManager {
                 updateUserStatistics();
                 updateQueueCounts();
                 updateTicketHistory();
-                
+                appStateManager.currentPage = 'customer';
                 // Show customer stats in notification
                 setTimeout(() => {
                     const stats = userProfile.statistics;
