@@ -3,181 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LiveLine - Real-Time Queue Management</title>
+    <title>LiveLine - Queue Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="style" href="style.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .notification.show {
+            transform: translateX(0);
+        }
+        .auth-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <header class="bg-white shadow-lg border-b-4 border-blue-500">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold text-lg">LL</span>
-                    </div>
-                    <h1 class="text-2xl font-bold text-gray-900">LiveLine</h1>
-                    <span class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Real-Time Queue Management</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-3 h-3 bg-green-500 rounded-full pulse-animation"></div>
-                        <span class="text-sm text-gray-600">Live Updates</span>
-                    </div>
-                    <button id="toggleView" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                        Switch to Admin
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        <div id="userView" class="space-y-8">
-            <!-- Service Selection -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Select Service</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button onclick="selectService('hospital')" class="service-btn p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                        <div class="text-3xl mb-2">🏥</div>
-                        <h3 class="font-medium text-gray-900">Hospital</h3>
-                        <p class="text-sm text-gray-500">General Consultation</p>
-                    </button>
-                    <button onclick="selectService('bank')" class="service-btn p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                        <div class="text-3xl mb-2">🏦</div>
-                        <h3 class="font-medium text-gray-900">Bank</h3>
-                        <p class="text-sm text-gray-500">Customer Service</p>
-                    </button>
-                    <button onclick="selectService('government')" class="service-btn p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                        <div class="text-3xl mb-2">🏛️</div>
-                        <h3 class="font-medium text-gray-900">Government</h3>
-                        <p class="text-sm text-gray-500">Document Services</p>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Queue Status -->
-            <div id="queueStatus" class="hidden bg-white rounded-xl shadow-lg p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-semibold text-gray-900">Queue Status</h2>
-                    <div class="flex items-center space-x-2">
-                        <div class="w-2 h-2 bg-green-500 rounded-full pulse-animation"></div>
-                        <span class="text-sm text-green-600 font-medium">Live</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Current Status -->
-                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-                        <h3 class="text-lg font-medium mb-4">Your Token</h3>
-                        <div class="text-center">
-                            <div id="userToken" class="text-4xl font-bold mb-2">-</div>
-                            <div id="userStatus" class="text-blue-100">Join queue to get token</div>
-                        </div>
-                    </div>
-
-                    <!-- Queue Info -->
-                    <div class="space-y-4">
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Currently Serving</span>
-                                <span id="currentServing" class="font-bold text-lg text-green-600">-</span>
-                            </div>
-                        </div>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">People Ahead</span>
-                                <span id="peopleAhead" class="font-bold text-lg text-orange-600">-</span>
-                            </div>
-                        </div>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Estimated Wait</span>
-                                <span id="estimatedWait" class="font-bold text-lg text-blue-600">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-6 flex space-x-4">
-                    <button id="joinQueueBtn" onclick="joinQueue()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
-                        Join Queue
-                    </button>
-                    <button id="leaveQueueBtn" onclick="leaveQueue()" class="hidden flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
-                        Leave Queue
-                    </button>
-                </div>
-            </div>
-
-            <!-- Live Queue Display -->
-            <div id="liveQueue" class="hidden bg-white rounded-xl shadow-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Live Queue</h3>
-                <div id="queueList" class="space-y-2 max-h-64 overflow-y-auto">
-                    
-                </div>
-            </div>
-        </div>
-
-        <!-- Admin View -->
-        <div id="adminView" class="hidden space-y-8">
-            <!-- Admin Dashboard -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-semibold text-gray-900">Admin Dashboard</h2>
-                    <div class="flex items-center space-x-4">
-                        <select id="adminService" onchange="switchAdminService()" class="border border-gray-300 rounded-lg px-3 py-2">
-                            <option value="hospital">Hospital</option>
-                            <option value="bank">Bank</option>
-                            <option value="government">Government</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-blue-50 rounded-lg p-4">
-                        <div class="text-2xl font-bold text-blue-600" id="totalInQueue">0</div>
-                        <div class="text-sm text-gray-600">Total in Queue</div>
-                    </div>
-                    <div class="bg-green-50 rounded-lg p-4">
-                        <div class="text-2xl font-bold text-green-600" id="currentlyServing">-</div>
-                        <div class="text-sm text-gray-600">Currently Serving</div>
-                    </div>
-                    <div class="bg-orange-50 rounded-lg p-4">
-                        <div class="text-2xl font-bold text-orange-600" id="avgWaitTime">5</div>
-                        <div class="text-sm text-gray-600">Avg Wait (min)</div>
-                    </div>
-                    <div class="bg-purple-50 rounded-lg p-4">
-                        <div class="text-2xl font-bold text-purple-600" id="servedToday">12</div>
-                        <div class="text-sm text-gray-600">Served Today</div>
-                    </div>
-                </div>
-
-                <div class="flex space-x-4">
-                    <button onclick="callNext()" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
-                        Call Next Token
-                    </button>
-                    <button onclick="markCompleted()" class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
-                        Mark Current Complete
-                    </button>
-                    <button onclick="pauseQueue()" id="pauseBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
-                        Pause Queue
-                    </button>
-                </div>
-            </div>
-
-            <!-- Admin Queue Management -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Queue Management</h3>
-                <div id="adminQueueList" class="space-y-2 max-h-96 overflow-y-auto">
-                   
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Notification Toast -->
-    <div id="notification" class="hidden fixed top-4 right-4 bg-white border-l-4 border-blue-500 rounded-lg shadow-lg p-4 max-w-sm notification">
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100">
+    <!-- Notification System -->
+    <div id="notification" class="notification bg-white border-l-4 border-blue-500 shadow-lg rounded-lg p-4 max-w-sm">
         <div class="flex items-center">
             <div class="flex-shrink-0">
                 <div class="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
@@ -190,11 +55,1595 @@
         </div>
     </div>
 
-    <script src="script.js">
-       
-    </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'970fda9897071b6e',t:'MTc1NTUwMzc3OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();
+    <!-- Authentication Pages -->
+    <div id="authContainer" class="auth-container flex items-center justify-center">
+        <!-- Login Page -->
+        <div id="loginPage" class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <span class="text-white font-bold text-2xl">LL</span>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900">Welcome Back</h1>
+                <p class="text-gray-600 mt-2">Sign in to LiveLine Queue Management</p>
+            </div>
 
-</script>
-</body>
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <input type="email" id="loginEmail" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Enter your email">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="loginPassword" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Enter your password">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-600">Remember me</span>
+                    </label>
+                    <a href="#" class="text-sm text-blue-600 hover:text-blue-500">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">Don't have an account? 
+                    <button id="showSignupBtn" class="text-blue-600 hover:text-blue-500 font-medium">Sign up</button>
+                </p>
+            </div>
+
+            <!-- Demo Accounts -->
+            <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Demo Accounts:</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Admin:</span>
+                        <button onclick="fillLogin('admin@liveline.com', 'admin123')" class="text-blue-600 hover:text-blue-500">admin@liveline.com</button>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Customer:</span>
+                        <button onclick="fillLogin('customer@liveline.com', 'customer123')" class="text-blue-600 hover:text-blue-500">customer@liveline.com</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signup Page -->
+        <div id="signupPage" class="hidden bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <span class="text-white font-bold text-2xl">LL</span>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900">Create Account</h1>
+                <p class="text-gray-600 mt-2">Join LiveLine Queue Management</p>
+            </div>
+
+            <form id="signupForm" class="space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                        <input type="text" id="signupFirstName" required 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="firstname">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                        <input type="text" id="signupLastName" required 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="lastname">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <input type="email" id="signupEmail" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="abc@example.com">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                    <input type="tel" id="signupPhone" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="+1 (555) 123-4567">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="signupPassword" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Create a strong password">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                    <input type="password" id="signupConfirmPassword" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Confirm your password">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+                    <select id="signupRole" required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select account type</option>
+                        <option value="customer">Customer</option>
+                        <option value="admin">Admin (Requires approval)</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" id="agreeTerms" required class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="agreeTerms" class="ml-2 text-sm text-gray-600">
+                        I agree to the <a href="#" class="text-blue-600 hover:text-blue-500">Terms of Service</a> and 
+                        <a href="#" class="text-blue-600 hover:text-blue-500">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors">
+                    Create Account
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">Already have an account? 
+                    <button id="showLoginBtn" class="text-blue-600 hover:text-blue-500 font-medium">Sign in</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-lg border-b-4 border-blue-500">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">LL</span>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">LiveLine</h1>
+                            <p class="text-sm text-gray-600">Real-Time Queue Management</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <div id="connectionStatus" class="w-3 h-3 bg-green-500 rounded-full pulse-dot"></div>
+                            <span class="text-sm text-gray-600">Connected</span>
+                        </div>
+                        <div class="text-sm text-gray-500" id="currentTime"></div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                <span id="userInitials" class="text-white text-sm font-medium">-</span>
+                            </div>
+                            <span id="userName" class="text-sm font-medium text-gray-700">-</span>
+                        </div>
+                        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Customer Interface -->
+        <div id="customerInterface" class="hidden">
+            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Welcome Section -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Welcome to LiveLine</h2>
+                    <p class="text-gray-600">Select a service to join the queue and track your position in real-time.</p>
+                </div>
+
+                <!-- Service Selection -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Available Services</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <button class="service-btn bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-xl transition-all transform hover:scale-105" data-service="bank">
+                            <div class="text-4xl mb-3">🏦</div>
+                            <h3 class="text-xl font-semibold mb-2">Bank Services</h3>
+                            <p class="text-blue-100 mb-3">Account opening, loans, transfers</p>
+                            <div class="flex justify-between text-sm">
+                                <span class="bg-blue-400 px-2 py-1 rounded">Avg: 5 min</span>
+                                <span id="bankQueue" class="bg-blue-400 px-2 py-1 rounded">Queue: 0</span>
+                            </div>
+                        </button>
+                        <button class="service-btn bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white p-6 rounded-xl transition-all transform hover:scale-105" data-service="hospital">
+                            <div class="text-4xl mb-3">🏥</div>
+                            <h3 class="text-xl font-semibold mb-2">Hospital Services</h3>
+                            <p class="text-red-100 mb-3">Consultations, appointments, emergency</p>
+                            <div class="flex justify-between text-sm">
+                                <span class="bg-red-400 px-2 py-1 rounded">Avg: 8 min</span>
+                                <span id="hospitalQueue" class="bg-red-400 px-2 py-1 rounded">Queue: 0</span>
+                            </div>
+                        </button>
+                        <button class="service-btn bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-6 rounded-xl transition-all transform hover:scale-105" data-service="government">
+                            <div class="text-4xl mb-3">🏛️</div>
+                            <h3 class="text-xl font-semibold mb-2">Government Services</h3>
+                            <p class="text-green-100 mb-3">Permits, licenses, documentation</p>
+                            <div class="flex justify-between text-sm">
+                                <span class="bg-green-400 px-2 py-1 rounded">Avg: 10 min</span>
+                                <span id="governmentQueue" class="bg-green-400 px-2 py-1 rounded">Queue: 0</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Queue Status Display -->
+                <div id="queueDisplay" class="hidden bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">Queue Status</h2>
+                        <div class="flex space-x-3">
+                            <button id="refreshBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                🔄 Refresh
+                            </button>
+                            <button id="joinQueueBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                Join Queue
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Current Status -->
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Queue Information</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Service Type:</span>
+                                    <span id="currentService" class="font-medium text-gray-900">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">People in Queue:</span>
+                                    <span id="queueLength" class="font-medium text-blue-600">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Estimated Wait:</span>
+                                    <span id="estimatedWait" class="font-medium text-orange-600">0 min</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Now Serving:</span>
+                                    <span id="nowServing" class="font-medium text-green-600">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Your Ticket -->
+                        <div id="ticketInfo" class="bg-blue-50 rounded-lg p-6 hidden">
+                            <h3 class="text-lg font-semibold text-blue-900 mb-4">Your Ticket</h3>
+                            <div class="text-center">
+                                <div class="text-4xl font-bold text-blue-600 mb-2" id="ticketNumber">-</div>
+                                <p class="text-blue-700 mb-4">Your ticket number</p>
+                                <div class="bg-white rounded-lg p-4 mb-4">
+                                    <div class="text-sm text-gray-600 mb-1">Position:</div>
+                                    <div class="text-2xl font-bold text-gray-900" id="yourPosition">-</div>
+                                </div>
+                                <div class="bg-white rounded-lg p-4">
+                                    <div class="text-sm text-gray-600 mb-1">Est. Wait:</div>
+                                    <div class="text-xl font-bold text-orange-600" id="yourWaitTime">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Queue List -->
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Live Queue</h3>
+                        <div id="queueList" class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                            <p class="text-gray-500 text-center">No one in queue</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Tickets History -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">My Ticket History</h2>
+                    <div id="ticketHistory" class="space-y-3">
+                        <p class="text-gray-500 text-center py-8">No previous tickets</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Admin Interface -->
+        <div id="adminInterface" class="hidden">
+            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Admin Dashboard -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-600">Last Updated:</span>
+                            <span id="lastUpdated" class="text-sm font-medium text-gray-900">-</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Service Tabs -->
+                    <div class="flex space-x-4 mb-6">
+                        <button class="admin-tab-btn bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-service="bank">
+                            🏦 Bank Queue
+                        </button>
+                        <button class="admin-tab-btn bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors" data-service="hospital">
+                            🏥 Hospital Queue
+                        </button>
+                        <button class="admin-tab-btn bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors" data-service="government">
+                            🏛️ Government Queue
+                        </button>
+                    </div>
+
+                    <!-- Admin Controls -->
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <h3 class="text-lg font-semibold text-green-900 mb-3">Queue Controls</h3>
+                            <div class="space-y-2">
+                                <button id="nextCustomerBtn" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                                    ▶️ Next Customer
+                                </button>
+                                <button id="pauseQueueBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                                    ⏸️ Pause Queue
+                                </button>
+                                <button id="clearQueueBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                                    🗑️ Clear Queue
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h3 class="text-lg font-semibold text-blue-900 mb-3">Today's Stats</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-blue-700">Total Served:</span>
+                                    <span id="totalServed" class="font-medium">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-blue-700">Avg Wait:</span>
+                                    <span id="avgWaitTime" class="font-medium">0 min</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-blue-700">Active Users:</span>
+                                    <span id="activeUsers" class="font-medium">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <h3 class="text-lg font-semibold text-purple-900 mb-3">Settings</h3>
+                            <div class="space-y-2">
+                                <label class="block text-sm text-purple-700">Service Time (min):</label>
+                                <input id="serviceTimeInput" type="number" value="5" min="1" max="60" class="w-full px-3 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <button id="updateSettingsBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                                    💾 Update
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-orange-50 rounded-lg p-4">
+                            <h3 class="text-lg font-semibold text-orange-900 mb-3">Quick Actions</h3>
+                            <div class="space-y-2">
+                                <button id="addTestCustomerBtn" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                                    👤 Add Test Customer
+                                </button>
+                                <button id="exportDataBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                                    📊 Export Data
+                                </button>
+                                <button id="resetStatsBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                                    🔄 Reset Stats
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Service Status -->
+                    <div id="currentServiceStatus" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 hidden">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-5 h-5 bg-yellow-400 rounded-full"></div>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-yellow-800">
+                                    Currently serving: <span id="currentlyServing">-</span>
+                                </p>
+                                <p class="text-sm text-yellow-700">
+                                    Service started: <span id="serviceStartTime">-</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Queue View -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Queue Management</h3>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-600">Auto-refresh:</span>
+                                <button id="autoRefreshToggle" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm">ON</button>
+                            </div>
+                        </div>
+                        <div id="adminQueueList" class="space-y-2 max-h-96 overflow-y-auto">
+                            <p class="text-gray-500 text-center py-8">No customers in queue</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        /*
+        ==========================================
+        AUTHENTICATION & USER MANAGEMENT SYSTEM
+        ==========================================
+        In Next.js, this would be implemented with:
+        - NextAuth.js for authentication
+        - JWT tokens for session management
+        - MongoDB for user storage
+        - Role-based access control (RBAC)
+        - Protected API routes
+        */
+
+        // User Management Class
+        class AuthManager {
+            constructor() {
+                this.currentUser = null;
+                this.users = new Map();
+                this.sessions = new Map();
+                this.initializeDemoUsers();
+            }
+
+            // Initialize demo users (In Next.js: MongoDB seed data)
+            initializeDemoUsers() {
+                const demoUsers = [
+                    {
+                        id: 'admin-1',
+                        email: 'admin@liveline.com',
+                        password: 'admin123', // In real app: bcrypt hashed
+                        firstName: 'Admin',
+                        lastName: 'User',
+                        role: 'admin',
+                        phone: '+1-555-0001',
+                        createdAt: new Date(),
+                        isActive: true
+                    },
+                    {
+                        id: 'customer-1',
+                        email: 'customer@liveline.com',
+                        password: 'customer123', // In real app: bcrypt hashed
+                        firstName: 'John',
+                        lastName: 'Doe',
+                        role: 'customer',
+                        phone: '+1-555-0002',
+                        createdAt: new Date(),
+                        isActive: true
+                    }
+                ];
+
+                demoUsers.forEach(user => {
+                    this.users.set(user.email, user);
+                });
+            }
+
+            // Login method (In Next.js: /api/auth/login)
+            async login(email, password) {
+                const user = this.users.get(email);
+                
+                if (!user) {
+                    throw new Error('User not found');
+                }
+
+                // In real app: bcrypt.compare(password, user.hashedPassword)
+                if (user.password !== password) {
+                    throw new Error('Invalid password');
+                }
+
+                if (!user.isActive) {
+                    throw new Error('Account is deactivated');
+                }
+
+                // Create session (In Next.js: JWT token)
+                const sessionId = this.generateSessionId();
+                const session = {
+                    id: sessionId,
+                    userId: user.id,
+                    email: user.email,
+                    role: user.role,
+                    createdAt: new Date(),
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+                };
+
+                this.sessions.set(sessionId, session);
+                this.currentUser = user;
+
+                // Store in localStorage (In Next.js: HTTP-only cookies)
+                localStorage.setItem('sessionId', sessionId);
+                localStorage.setItem('user', JSON.stringify({
+                    id: user.id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    role: user.role
+                }));
+
+                return { user, session };
+            }
+
+            // Signup method (In Next.js: /api/auth/signup)
+            async signup(userData) {
+                const { email, password, confirmPassword, firstName, lastName, phone, role } = userData;
+
+                // Validation
+                if (this.users.has(email)) {
+                    throw new Error('Email already exists');
+                }
+
+                if (password !== confirmPassword) {
+                    throw new Error('Passwords do not match');
+                }
+
+                if (password.length < 6) {
+                    throw new Error('Password must be at least 6 characters');
+                }
+
+                // Create new user
+                const newUser = {
+                    id: this.generateUserId(),
+                    email,
+                    password, // In real app: await bcrypt.hash(password, 10)
+                    firstName,
+                    lastName,
+                    phone,
+                    role,
+                    createdAt: new Date(),
+                    isActive: role === 'customer' // Admin accounts need approval
+                };
+
+                this.users.set(email, newUser);
+
+                // Auto-login for customers, pending approval for admins
+                if (role === 'customer') {
+                    return await this.login(email, password);
+                } else {
+                    return { user: newUser, needsApproval: true };
+                }
+            }
+
+            // Check session validity (In Next.js: middleware)
+            checkSession() {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) return null;
+
+                const session = this.sessions.get(sessionId);
+                if (!session || session.expiresAt < new Date()) {
+                    this.logout();
+                    return null;
+                }
+
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    this.currentUser = JSON.parse(userData);
+                    return this.currentUser;
+                }
+
+                return null;
+            }
+
+            // Logout method
+            logout() {
+                const sessionId = localStorage.getItem('sessionId');
+                if (sessionId) {
+                    this.sessions.delete(sessionId);
+                }
+                
+                localStorage.removeItem('sessionId');
+                localStorage.removeItem('user');
+                this.currentUser = null;
+            }
+
+            // Utility methods
+            generateSessionId() {
+                return 'sess_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+
+            generateUserId() {
+                return 'user_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+
+            isAdmin() {
+                return this.currentUser && this.currentUser.role === 'admin';
+            }
+
+            isCustomer() {
+                return this.currentUser && this.currentUser.role === 'customer';
+            }
+        }
+
+        // Queue Management System (Enhanced with user tracking)
+        class QueueManager {
+            constructor() {
+                this.queues = new Map();
+                this.userTickets = new Map(); // Track user tickets
+                this.ticketHistory = new Map(); // User ticket history
+                this.socket = null;
+                this.autoRefresh = true;
+                this.initializeQueues();
+                this.connectWebSocket();
+            }
+
+            initializeQueues() {
+                const services = ['bank', 'hospital', 'government'];
+                const serviceTimes = { bank: 5, hospital: 8, government: 10 };
+                
+                services.forEach(service => {
+                    this.queues.set(service, {
+                        customers: [],
+                        currentlyServing: null,
+                        isPaused: false,
+                        totalServed: 0,
+                        averageServiceTime: serviceTimes[service],
+                        lastUpdated: new Date()
+                    });
+                });
+            }
+
+            connectWebSocket() {
+                console.log('🔌 Connecting to WebSocket...');
+                setTimeout(() => {
+                    this.socket = { connected: true };
+                    this.updateConnectionStatus(true);
+                    this.startRealTimeUpdates();
+                }, 1000);
+            }
+
+            startRealTimeUpdates() {
+                setInterval(() => {
+                    if (this.autoRefresh) {
+                        this.broadcastQueueUpdate();
+                    }
+                }, 3000);
+            }
+
+            // Enhanced join queue with user tracking
+            async joinQueue(service, userId) {
+                const queue = this.queues.get(service);
+                const user = authManager.currentUser;
+                
+                const customer = {
+                    id: this.generateId(),
+                    ticketNumber: this.generateTicketNumber(service),
+                    service: service,
+                    userId: userId,
+                    userName: `${user.firstName} ${user.lastName}`,
+                    userEmail: user.email,
+                    joinedAt: new Date(),
+                    estimatedWaitTime: queue.customers.length * queue.averageServiceTime,
+                    status: 'waiting'
+                };
+
+                queue.customers.push(customer);
+                queue.lastUpdated = new Date();
+                
+                // Track user ticket
+                this.userTickets.set(userId, customer);
+                
+                // Add to history
+                if (!this.ticketHistory.has(userId)) {
+                    this.ticketHistory.set(userId, []);
+                }
+                this.ticketHistory.get(userId).push({
+                    ...customer,
+                    status: 'active'
+                });
+                
+                this.broadcastQueueUpdate();
+                this.showNotification(`Joined ${service} queue. Ticket: ${customer.ticketNumber}`);
+                
+                return customer;
+            }
+
+            // Leave queue
+            async leaveQueue(service, userId) {
+                const queue = this.queues.get(service);
+                const userTicket = this.userTickets.get(userId);
+                
+                if (userTicket) {
+                    queue.customers = queue.customers.filter(c => c.id !== userTicket.id);
+                    this.userTickets.delete(userId);
+                    
+                    // Update history
+                    const history = this.ticketHistory.get(userId);
+                    if (history) {
+                        const historyItem = history.find(h => h.id === userTicket.id);
+                        if (historyItem) {
+                            historyItem.status = 'cancelled';
+                            historyItem.leftAt = new Date();
+                        }
+                    }
+                    
+                    queue.lastUpdated = new Date();
+                    this.broadcastQueueUpdate();
+                    this.showNotification('Left the queue');
+                }
+            }
+
+            // Get user's current ticket
+            getUserTicket(userId) {
+                return this.userTickets.get(userId);
+            }
+
+            // Get user's ticket history
+            getUserHistory(userId) {
+                return this.ticketHistory.get(userId) || [];
+            }
+
+            // Admin: Call next customer
+            async callNextCustomer(service) {
+                const queue = this.queues.get(service);
+                if (queue.customers.length === 0) return null;
+
+                const nextCustomer = queue.customers.shift();
+                queue.currentlyServing = nextCustomer;
+                queue.lastUpdated = new Date();
+                
+                // Update user ticket status
+                if (nextCustomer.userId) {
+                    this.userTickets.delete(nextCustomer.userId);
+                    
+                    // Update history
+                    const history = this.ticketHistory.get(nextCustomer.userId);
+                    if (history) {
+                        const historyItem = history.find(h => h.id === nextCustomer.id);
+                        if (historyItem) {
+                            historyItem.status = 'being_served';
+                            historyItem.calledAt = new Date();
+                        }
+                    }
+                }
+                
+                this.broadcastQueueUpdate();
+                this.showNotification(`Now serving: ${nextCustomer.ticketNumber}`);
+                
+                // Simulate service completion
+                setTimeout(() => {
+                    this.completeService(service, nextCustomer);
+                }, queue.averageServiceTime * 1000);
+                
+                return nextCustomer;
+            }
+
+            completeService(service, customer) {
+                const queue = this.queues.get(service);
+                if (queue.currentlyServing && queue.currentlyServing.id === customer.id) {
+                    queue.totalServed++;
+                    queue.currentlyServing = null;
+                    queue.lastUpdated = new Date();
+                    
+                    // Update history
+                    if (customer.userId) {
+                        const history = this.ticketHistory.get(customer.userId);
+                        if (history) {
+                            const historyItem = history.find(h => h.id === customer.id);
+                            if (historyItem) {
+                                historyItem.status = 'completed';
+                                historyItem.completedAt = new Date();
+                            }
+                        }
+                    }
+                    
+                    this.broadcastQueueUpdate();
+                }
+            }
+
+            // Other queue methods remain the same...
+            pauseQueue(service) {
+                const queue = this.queues.get(service);
+                queue.isPaused = !queue.isPaused;
+                queue.lastUpdated = new Date();
+                this.broadcastQueueUpdate();
+                this.showNotification(`Queue ${queue.isPaused ? 'paused' : 'resumed'}`);
+            }
+
+            clearQueue(service) {
+                const queue = this.queues.get(service);
+                
+                // Update history for all customers in queue
+                queue.customers.forEach(customer => {
+                    if (customer.userId) {
+                        this.userTickets.delete(customer.userId);
+                        const history = this.ticketHistory.get(customer.userId);
+                        if (history) {
+                            const historyItem = history.find(h => h.id === customer.id);
+                            if (historyItem) {
+                                historyItem.status = 'cancelled';
+                                historyItem.leftAt = new Date();
+                            }
+                        }
+                    }
+                });
+                
+                queue.customers = [];
+                queue.currentlyServing = null;
+                queue.lastUpdated = new Date();
+                this.broadcastQueueUpdate();
+                this.showNotification('Queue cleared');
+            }
+
+            generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+
+            generateTicketNumber(service) {
+                const prefix = service.charAt(0).toUpperCase();
+                const number = String(Date.now()).slice(-4);
+                return `${prefix}${number}`;
+            }
+
+            broadcastQueueUpdate() {
+                const event = new CustomEvent('queueUpdate', {
+                    detail: { queues: Object.fromEntries(this.queues) }
+                });
+                document.dispatchEvent(event);
+            }
+
+            updateConnectionStatus(connected) {
+                const statusEl = document.getElementById('connectionStatus');
+                const textEl = statusEl.nextElementSibling;
+                
+                if (connected) {
+                    statusEl.className = 'w-3 h-3 bg-green-500 rounded-full pulse-dot';
+                    textEl.textContent = 'Connected';
+                } else {
+                    statusEl.className = 'w-3 h-3 bg-red-500 rounded-full';
+                    textEl.textContent = 'Disconnected';
+                }
+            }
+
+            showNotification(message) {
+                const notification = document.getElementById('notification');
+                const text = document.getElementById('notificationText');
+                
+                text.textContent = message;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Initialize managers
+        const authManager = new AuthManager();
+        const queueManager = new QueueManager();
+
+        // Application state
+        let selectedService = null;
+        let currentAdminService = 'bank';
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Check if user is already logged in
+            const user = authManager.checkSession();
+            if (user) {
+                showMainApp(user);
+            } else {
+                showAuthPages();
+            }
+
+            initializeEventListeners();
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+        }
+
+        function initializeEventListeners() {
+            // Authentication event listeners
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('signupForm').addEventListener('submit', handleSignup);
+            document.getElementById('showSignupBtn').addEventListener('click', showSignupPage);
+            document.getElementById('showLoginBtn').addEventListener('click', showLoginPage);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+            // Customer interface
+            document.querySelectorAll('.service-btn').forEach(btn => {
+                btn.addEventListener('click', () => selectService(btn.dataset.service));
+            });
+            
+            document.getElementById('joinQueueBtn').addEventListener('click', handleJoinQueue);
+            document.getElementById('refreshBtn').addEventListener('click', () => {
+                updateCustomerDisplay();
+                queueManager.showNotification('Queue refreshed');
+            });
+
+            // Admin interface
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchAdminService(btn.dataset.service));
+            });
+
+            document.getElementById('nextCustomerBtn').addEventListener('click', () => {
+                queueManager.callNextCustomer(currentAdminService);
+            });
+
+            document.getElementById('pauseQueueBtn').addEventListener('click', () => {
+                queueManager.pauseQueue(currentAdminService);
+            });
+
+            document.getElementById('clearQueueBtn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to clear the entire queue?')) {
+                    queueManager.clearQueue(currentAdminService);
+                }
+            });
+
+            document.getElementById('updateSettingsBtn').addEventListener('click', updateServiceSettings);
+            document.getElementById('addTestCustomerBtn').addEventListener('click', addTestCustomer);
+            document.getElementById('exportDataBtn').addEventListener('click', exportQueueData);
+            document.getElementById('resetStatsBtn').addEventListener('click', resetStatistics);
+            document.getElementById('autoRefreshToggle').addEventListener('click', toggleAutoRefresh);
+
+            // Listen for queue updates
+            document.addEventListener('queueUpdate', () => {
+                if (authManager.isCustomer()) {
+                    updateCustomerDisplay();
+                } else if (authManager.isAdmin()) {
+                    updateAdminDisplay();
+                }
+            });
+        }
+
+        // Authentication handlers
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const { user } = await authManager.login(email, password);
+                queueManager.showNotification(`Welcome back, ${user.firstName}!`);
+                showMainApp(user);
+            } catch (error) {
+                queueManager.showNotification(`Login failed: ${error.message}`);
+            }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            
+            const userData = {
+                firstName: document.getElementById('signupFirstName').value,
+                lastName: document.getElementById('signupLastName').value,
+                email: document.getElementById('signupEmail').value,
+                phone: document.getElementById('signupPhone').value,
+                password: document.getElementById('signupPassword').value,
+                confirmPassword: document.getElementById('signupConfirmPassword').value,
+                role: document.getElementById('signupRole').value
+            };
+
+            try {
+                const result = await authManager.signup(userData);
+                
+                if (result.needsApproval) {
+                    queueManager.showNotification('Admin account created. Awaiting approval.');
+                    showLoginPage();
+                } else {
+                    queueManager.showNotification(`Welcome, ${result.user.firstName}!`);
+                    showMainApp(result.user);
+                }
+            } catch (error) {
+                queueManager.showNotification(`Signup failed: ${error.message}`);
+            }
+        }
+
+        function handleLogout() {
+            authManager.logout();
+            queueManager.showNotification('Logged out successfully');
+            showAuthPages();
+        }
+
+        // UI Navigation
+        function showAuthPages() {
+            document.getElementById('authContainer').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showMainApp(user) {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            // Update user info in header
+            document.getElementById('userInitials').textContent = 
+                (user.firstName.charAt(0) + user.lastName.charAt(0)).toUpperCase();
+            document.getElementById('userName').textContent = `${user.firstName} ${user.lastName}`;
+            
+            // Show appropriate interface based on role
+            if (user.role === 'admin') {
+                document.getElementById('customerInterface').classList.add('hidden');
+                document.getElementById('adminInterface').classList.remove('hidden');
+                updateAdminDisplay();
+            } else {
+                document.getElementById('adminInterface').classList.add('hidden');
+                document.getElementById('customerInterface').classList.remove('hidden');
+                updateCustomerDisplay();
+                updateQueueCounts();
+            }
+        }
+
+        function showLoginPage() {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('signupPage').classList.add('hidden');
+        }
+
+        function showSignupPage() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('signupPage').classList.remove('hidden');
+        }
+
+        // Demo login helper
+        function fillLogin(email, password) {
+            document.getElementById('loginEmail').value = email;
+            document.getElementById('loginPassword').value = password;
+        }
+
+        // Customer Interface Functions
+        function selectService(service) {
+            selectedService = service;
+            document.getElementById('queueDisplay').classList.remove('hidden');
+            document.getElementById('currentService').textContent = 
+                service.charAt(0).toUpperCase() + service.slice(1);
+            updateCustomerDisplay();
+        }
+
+        async function handleJoinQueue() {
+            const userId = authManager.currentUser.id;
+            const userTicket = queueManager.getUserTicket(userId);
+            
+            if (!userTicket) {
+                await queueManager.joinQueue(selectedService, userId);
+                document.getElementById('ticketInfo').classList.remove('hidden');
+                
+                const joinBtn = document.getElementById('joinQueueBtn');
+                joinBtn.textContent = 'Leave Queue';
+                joinBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors';
+            } else {
+                await queueManager.leaveQueue(selectedService, userId);
+                document.getElementById('ticketInfo').classList.add('hidden');
+                
+                const joinBtn = document.getElementById('joinQueueBtn');
+                joinBtn.textContent = 'Join Queue';
+                joinBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors';
+            }
+            
+            updateCustomerDisplay();
+            updateTicketHistory();
+        }
+
+        function updateCustomerDisplay() {
+            if (!selectedService) return;
+            
+            const queue = queueManager.queues.get(selectedService);
+            const userId = authManager.currentUser.id;
+            const userTicket = queueManager.getUserTicket(userId);
+            
+            // Update queue info
+            document.getElementById('queueLength').textContent = queue.customers.length;
+            document.getElementById('estimatedWait').textContent = `${queue.customers.length * queue.averageServiceTime} min`;
+            document.getElementById('nowServing').textContent = 
+                queue.currentlyServing ? queue.currentlyServing.ticketNumber : 'None';
+            
+            // Update user ticket info
+            if (userTicket) {
+                const position = queue.customers.findIndex(c => c.id === userTicket.id) + 1;
+                document.getElementById('ticketNumber').textContent = userTicket.ticketNumber;
+                document.getElementById('yourPosition').textContent = position > 0 ? position : 'Not in queue';
+                document.getElementById('yourWaitTime').textContent = 
+                    position > 0 ? `${position * queue.averageServiceTime} min` : '-';
+            }
+            
+            // Update queue list
+            updateQueueList(queue.customers, 'queueList');
+        }
+
+        function updateQueueCounts() {
+            // Update service cards with current queue counts
+            queueManager.queues.forEach((queue, service) => {
+                const countEl = document.getElementById(`${service}Queue`);
+                if (countEl) {
+                    countEl.textContent = `Queue: ${queue.customers.length}`;
+                }
+            });
+        }
+
+        function updateTicketHistory() {
+            const userId = authManager.currentUser.id;
+            const history = queueManager.getUserHistory(userId);
+            const historyEl = document.getElementById('ticketHistory');
+            
+            if (history.length === 0) {
+                historyEl.innerHTML = '<p class="text-gray-500 text-center py-8">No previous tickets</p>';
+                return;
+            }
+            
+            historyEl.innerHTML = history.slice(-10).reverse().map(ticket => {
+                const statusColor = {
+                    'active': 'bg-blue-100 text-blue-800',
+                    'being_served': 'bg-yellow-100 text-yellow-800',
+                    'completed': 'bg-green-100 text-green-800',
+                    'cancelled': 'bg-red-100 text-red-800'
+                };
+                
+                return `
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <span class="font-medium">${ticket.ticketNumber}</span>
+                            <span class="text-sm text-gray-600 ml-2">${ticket.service}</span>
+                            <p class="text-xs text-gray-500">${ticket.joinedAt.toLocaleString()}</p>
+                        </div>
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor[ticket.status]}">
+                            ${ticket.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Admin Interface Functions
+        function switchAdminService(service) {
+            currentAdminService = service;
+            
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+                btn.className = 'admin-tab-btn bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors';
+            });
+            
+            event.target.className = 'admin-tab-btn bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors';
+            
+            updateAdminDisplay();
+        }
+
+        function updateAdminDisplay() {
+            const queue = queueManager.queues.get(currentAdminService);
+            
+            // Update statistics
+            document.getElementById('totalServed').textContent = queue.totalServed;
+            document.getElementById('avgWaitTime').textContent = `${queue.averageServiceTime} min`;
+            document.getElementById('activeUsers').textContent = authManager.sessions.size;
+            document.getElementById('serviceTimeInput').value = queue.averageServiceTime;
+            document.getElementById('lastUpdated').textContent = queue.lastUpdated.toLocaleTimeString();
+            
+            // Update pause button
+            const pauseBtn = document.getElementById('pauseQueueBtn');
+            pauseBtn.textContent = queue.isPaused ? '▶️ Resume Queue' : '⏸️ Pause Queue';
+            
+            // Update current service status
+            const statusDiv = document.getElementById('currentServiceStatus');
+            if (queue.currentlyServing) {
+                statusDiv.classList.remove('hidden');
+                document.getElementById('currentlyServing').textContent = 
+                    `${queue.currentlyServing.ticketNumber} (${queue.currentlyServing.userName})`;
+                document.getElementById('serviceStartTime').textContent = 
+                    queue.currentlyServing.joinedAt.toLocaleTimeString();
+            } else {
+                statusDiv.classList.add('hidden');
+            }
+            
+            // Update admin queue list
+            updateAdminQueueList(queue);
+        }
+
+        function updateQueueList(customers, elementId) {
+            const listEl = document.getElementById(elementId);
+            
+            if (customers.length === 0) {
+                listEl.innerHTML = '<p class="text-gray-500 text-center">No one in queue</p>';
+            } else {
+                listEl.innerHTML = customers.map((customer, index) => `
+                    <div class="flex justify-between items-center py-2 px-3 ${index === 0 ? 'bg-yellow-100' : 'bg-white'} rounded-lg mb-2 slide-in">
+                        <div>
+                            <span class="font-medium">${customer.ticketNumber}</span>
+                            <span class="text-sm text-gray-600 ml-2">${customer.joinedAt.toLocaleTimeString()}</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-600">Position ${index + 1}</div>
+                            <div class="text-xs text-orange-600">${(index + 1) * queueManager.queues.get(customer.service).averageServiceTime} min wait</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function updateAdminQueueList(queue) {
+            const listEl = document.getElementById('adminQueueList');
+            
+            if (queue.customers.length === 0 && !queue.currentlyServing) {
+                listEl.innerHTML = '<p class="text-gray-500 text-center py-8">No customers in queue</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            // Currently serving
+            if (queue.currentlyServing) {
+                html += `
+                    <div class="bg-green-100 border-l-4 border-green-500 p-4 rounded-lg mb-4 fade-in">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="font-semibold text-green-800">🔄 Now Serving: ${queue.currentlyServing.ticketNumber}</span>
+                                <p class="text-sm text-green-600">Customer: ${queue.currentlyServing.userName}</p>
+                                <p class="text-sm text-green-600">Started: ${queue.currentlyServing.joinedAt.toLocaleTimeString()}</p>
+                            </div>
+                            <span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm">In Service</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Waiting customers
+            html += queue.customers.map((customer, index) => `
+                <div class="bg-white border rounded-lg p-4 mb-2 flex justify-between items-center slide-in">
+                    <div>
+                        <span class="font-medium">${customer.ticketNumber}</span>
+                        <p class="text-sm text-gray-600">Customer: ${customer.userName}</p>
+                        <p class="text-sm text-gray-600">Joined: ${customer.joinedAt.toLocaleTimeString()}</p>
+                        <p class="text-xs text-orange-600">Est. wait: ${(index + 1) * queue.averageServiceTime} min</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">Position ${index + 1}</span>
+                        <button onclick="removeCustomer('${currentAdminService}', '${customer.id}')" 
+                                class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm transition-colors">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            listEl.innerHTML = html;
+        }
+
+        // Admin Actions
+        function updateServiceSettings() {
+            const newServiceTime = parseInt(document.getElementById('serviceTimeInput').value);
+            const queue = queueManager.queues.get(currentAdminService);
+            queue.averageServiceTime = newServiceTime;
+            queueManager.showNotification('Service time updated successfully!');
+        }
+
+        async function addTestCustomer() {
+            // Create a test customer
+            const testUser = {
+                id: 'test_' + Date.now(),
+                firstName: 'Test',
+                lastName: 'Customer',
+                email: `test${Date.now()}@example.com`
+            };
+            
+            const originalUser = authManager.currentUser;
+            authManager.currentUser = testUser;
+            
+            await queueManager.joinQueue(currentAdminService, testUser.id);
+            
+            authManager.currentUser = originalUser;
+        }
+
+        function exportQueueData() {
+            const data = {
+                queues: Object.fromEntries(queueManager.queues),
+                users: authManager.sessions.size,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `liveline-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            queueManager.showNotification('Queue data exported!');
+        }
+
+        function resetStatistics() {
+            if (confirm('Are you sure you want to reset all statistics?')) {
+                queueManager.queues.forEach(queue => {
+                    queue.totalServed = 0;
+                });
+                queueManager.showNotification('Statistics reset successfully!');
+                updateAdminDisplay();
+            }
+        }
+
+        function toggleAutoRefresh() {
+            queueManager.autoRefresh = !queueManager.autoRefresh;
+            const toggle = document.getElementById('autoRefreshToggle');
+            toggle.textContent = queueManager.autoRefresh ? 'ON' : 'OFF';
+            toggle.className = queueManager.autoRefresh ? 
+                'bg-green-500 text-white px-3 py-1 rounded-full text-sm' : 
+                'bg-red-500 text-white px-3 py-1 rounded-full text-sm';
+        }
+
+        // Utility Functions
+        function removeCustomer(service, customerId) {
+            const queue = queueManager.queues.get(service);
+            const customer = queue.customers.find(c => c.id === customerId);
+            
+            if (customer && customer.userId) {
+                queueManager.leaveQueue(service, customer.userId);
+            } else {
+                queue.customers = queue.customers.filter(c => c.id !== customerId);
+                queueManager.broadcastQueueUpdate();
+            }
+            
+            queueManager.showNotification('Customer removed from queue');
+        }
+
+        function updateCurrentTime() {
+            const timeEl = document.getElementById('currentTime');
+            if (timeEl) {
+                timeEl.textContent = new Date().toLocaleTimeString();
+            }
+        }
+
+        // Add some demo data after initialization
+        setTimeout(() => {
+            if (authManager.currentUser && authManager.isAdmin()) {
+                // Add demo customers to different queues for admin view
+                const demoData = [
+                    { service: 'bank', count: 2 },
+                    { service: 'hospital', count: 1 },
+                    { service: 'government', count: 3 }
+                ];
+                
+                demoData.forEach(({ service, count }) => {
+                    for (let i = 0; i < count; i++) {
+                        setTimeout(() => {
+                            addTestCustomer();
+                            currentAdminService = service;
+                        }, i * 500);
+                    }
+                });
+            }
+        }, 3000);
+
+        /*
+        ==========================================
+        NEXT.JS IMPLEMENTATION ARCHITECTURE
+        ==========================================
+        
+        This HTML prototype demonstrates a complete authentication and queue management system.
+        Here's how to implement it in Next.js:
+
+        1. PROJECT STRUCTURE:
+        /pages
+          /api
+            /auth
+              /login.ts           // POST /api/auth/login
+              /signup.ts          // POST /api/auth/signup
+              /logout.ts          // POST /api/auth/logout
+              /me.ts              // GET /api/auth/me
+            /socket.ts            // WebSocket server
+            /queues
+              /[service].ts       // Queue CRUD operations
+              /join.ts            // POST /api/queues/join
+              /leave.ts           // POST /api/queues/leave
+            /admin
+              /customers.ts       // Admin customer management
+              /stats.ts           // Admin statistics
+          /auth
+            /login.tsx            // Login page
+            /signup.tsx           // Signup page
+          /dashboard
+            /customer.tsx         // Customer dashboard
+            /admin.tsx            // Admin dashboard
+          /_app.tsx               // App wrapper with auth context
+          /index.tsx              // Landing page
+
+        2. AUTHENTICATION SETUP:
+        - NextAuth.js with JWT strategy
+        - MongoDB adapter for user storage
+        - Role-based middleware protection
+        - HTTP-only cookies for session management
+
+        3. DATABASE SCHEMAS (MongoDB):
+        
+        // User Schema
+        {
+          _id: ObjectId,
+          email: String (unique),
+          hashedPassword: String,
+          firstName: String,
+          lastName: String,
+          phone: String,
+          role: String (enum: 'customer', 'admin'),
+          isActive: Boolean,
+          createdAt: Date,
+          lastLogin: Date
+        }
+
+        // Queue Schema
+        {
+          _id: ObjectId,
+          service: String (enum: 'bank', 'hospital', 'government'),
+          customers: [{
+            userId: ObjectId,
+            ticketNumber: String,
+            joinedAt: Date,
+            estimatedWaitTime: Number,
+            status: String
+          }],
+          currentlyServing: ObjectId,
+          isPaused: Boolean,
+          settings: {
+            averageServiceTime: Number,
+            maxCapacity: Number
+          },
+          stats: {
+            totalServed: Number,
+            averageWaitTime: Number
+          },
+          lastUpdated: Date
+        }
+
+        // Ticket History Schema
+        {
+          _id: ObjectId,
+          userId: ObjectId,
+          ticketNumber: String,
+          service: String,
+          joinedAt: Date,
+          calledAt: Date,
+          completedAt: Date,
+          status: String,
+          waitTime: Number
+        }
+
+        4. WEBSOCKET IMPLEMENTATION:
+        - Socket.IO for real-time updates
+        - Room-based broadcasting (service-specific)
+        - Authentication middleware for WebSocket connections
+        - Event types: queue_update, customer_called, queue_paused
+
+        5. API ROUTES EXAMPLES:
+
+        // pages/api/auth/login.ts
+        import bcrypt from 'bcryptjs'
+        import jwt from 'jsonwebtoken'
+        import { connectToDatabase } from '../../../lib/mongodb'
+
+        export default async function handler(req, res) {
+          if (req.method !== 'POST') return res.status(405).end()
+          
+          const { email, password } = req.body
+          const { db } = await connectToDatabase()
+          
+          const user = await db.collection('users').findOne({ email })
+          if (!user || !await bcrypt.compare(password, user.hashedPassword)) {
+            return res.status(401).json({ error: 'Invalid credentials' })
+          }
+          
+          const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+          )
+          
+          res.setHeader('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=86400`)
+          res.json({ user: { id: user._id, email, firstName: user.firstName, lastName: user.lastName, role: user.role } })
+        }
+
+        // pages/api/queues/join.ts
+        import { authenticateUser } from '../../../lib/auth'
+        import { connectToDatabase } from '../../../lib/mongodb'
+        import { broadcastQueueUpdate } from '../../../lib/websocket'
+
+        export default async function handler(req, res) {
+          if (req.method !== 'POST') return res.status(405).end()
+          
+          const user = await authenticateUser(req)
+          if (!user) return res.status(401).json({ error: 'Unauthorized' })
+          
+          const { service } = req.body
+          const { db } = await connectToDatabase()
+          
+          const ticket = {
+            userId: user.id,
+            ticketNumber: generateTicketNumber(service),
+            joinedAt: new Date(),
+            status: 'waiting'
+          }
+          
+          await db.collection('queues').updateOne(
+            { service },
+            { $push: { customers: ticket }, $set: { lastUpdated: new Date() } },
+            { upsert: true }
+          )
+          
+          broadcastQueueUpdate(service)
+          res.json({ ticket })
+        }
+
+        6. MIDDLEWARE SETUP:
+
+        // middleware.ts
+        import { NextResponse } from 'next/server'
+        import { verifyJWT } from './lib/auth'
+
+        export async function middleware(request) {
+          const token = request.cookies.get('token')?.value
+          
+          if (request.nextUrl.pathname.startsWith('/dashboard')) {
+            if (!token) {
+              return NextResponse.redirect(new URL('/auth/login', request.url))
+            }
+            
+            const user = await verifyJWT(token)
+            if (!user) {
+              return NextResponse.redirect(new URL('/auth/login', request.url))
+            }
+            
+            // Role-based access control
+            if (request.nextUrl.pathname.startsWith('/dashboard/admin') && user.role !== 'admin') {
+              return NextResponse.redirect(new URL('/dashboard/customer', request.url))
+            }
+          }
+          
+          return NextResponse.next()
+        }
+
+        7. REACT COMPONENTS:
+
+        // components/AuthProvider.tsx
+        import { createContext, useContext, useEffect, useState } from 'react'
+
+        const AuthContext = createContext()
+
+        export function AuthProvider({ children }) {
+          const [user, setUser] = useState(null)
+          const [loading, setLoading] = useState(true)
+          
+          useEffect(() => {
+            checkAuth()
+          }, [])
+          
+          const checkAuth = async () => {
+            try {
+              const res = await fetch('/api/auth/me')
+              if (res.ok) {
+                const userData = await res.json()
+                setUser(userData)
+              }
+            } catch (error) {
+              console.error('Auth check failed:', error)
+            } finally {
+              setLoading(false)
+            }
+          }
+          
+          return (
+            <AuthContext.Provider value={{ user, setUser, loading }}>
+              {children}
+            </AuthContext.Provider>
+          )
+        }
+
+        8. DEPLOYMENT CONSIDERATIONS:
+        - Environment variables for JWT secrets and MongoDB connection
+        - Vercel deployment with WebSocket support
+        - MongoDB Atlas for production database
+        - Redis for session storage (optional)
+        - Rate limiting for API endpoints
+        - Input validation and sanitization
+        - CORS configuration for WebSocket connections
+
+        This HTML prototype provides a complete foundation for building
+        the full Next.js application with all the features demonstrated!
+        */
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9711458af1445478',t:'MTc1NTUxODY0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
