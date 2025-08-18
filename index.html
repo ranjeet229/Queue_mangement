@@ -103,15 +103,17 @@
 
             <!-- Demo Accounts -->
             <div class="mt-8 p-4 bg-gray-50 rounded-lg">
-                <h3 class="text-sm font-medium text-gray-700 mb-3">Demo Accounts:</h3>
+                <h3 class="text-sm font-medium text-gray-700 mb-3"></h3>
                 <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Admin:</span>
-                        <button onclick="fillLogin('admin@liveline.com', 'admin123')" class="text-blue-600 hover:text-blue-500">admin@liveline.com</button>
+                    <div class="flex justify-between items-center">
+                       
+                        <div class="flex space-x-2">
+                        </div>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Customer:</span>
-                        <button onclick="fillLogin('customer@liveline.com', 'customer123')" class="text-blue-600 hover:text-blue-500">customer@liveline.com</button>
+                    <div class="flex justify-between items-center">
+                        
+                        <div class="flex space-x-2">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -729,17 +731,39 @@
                     throw new Error('Account is deactivated');
                 }
 
-                // Update login statistics
+                // Store previous login for "last seen" display
+                const previousLogin = user.lastLogin;
+                
+                // Update comprehensive login statistics and user data
                 user.lastLogin = new Date();
                 user.loginCount = (user.loginCount || 0) + 1;
+                user.previousLogin = previousLogin; // Store for display purposes
+                
+                // Update user activity tracking
+                if (!user.loginHistory) user.loginHistory = [];
+                user.loginHistory.push({
+                    timestamp: new Date(),
+                    ip: 'demo-ip', // In real app: req.ip
+                    userAgent: 'demo-browser' // In real app: req.headers['user-agent']
+                });
+                
+                // Keep only last 10 login records
+                if (user.loginHistory.length > 10) {
+                    user.loginHistory = user.loginHistory.slice(-10);
+                }
+                
                 this.users.set(email, user);
                 this.saveUsersToStorage();
 
-                // Initialize/load user profile with persistent data
+                // Initialize/load user profile with comprehensive persistent data
                 const userProfile = this.getUserProfile(user.id);
                 userProfile.lastActivity = new Date();
+                userProfile.currentSession = {
+                    loginTime: new Date(),
+                    isActive: true
+                };
 
-                // Create session (In Next.js: JWT token)
+                // Create enhanced session (In Next.js: JWT token)
                 const sessionId = this.generateSessionId();
                 const session = {
                     id: sessionId,
@@ -747,23 +771,32 @@
                     email: user.email,
                     role: user.role,
                     createdAt: new Date(),
-                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+                    loginCount: user.loginCount,
+                    isFirstLogin: user.loginCount === 1
                 };
 
                 this.sessions.set(sessionId, session);
                 this.currentUser = user;
 
-                // Store in localStorage (In Next.js: HTTP-only cookies)
+                // Store comprehensive user data in localStorage (In Next.js: HTTP-only cookies)
                 localStorage.setItem('sessionId', sessionId);
                 localStorage.setItem('user', JSON.stringify({
                     id: user.id,
                     email: user.email,
                     firstName: user.firstName,
                     lastName: user.lastName,
+                    phone: user.phone,
                     role: user.role,
                     loginCount: user.loginCount,
-                    lastLogin: user.lastLogin
+                    lastLogin: user.lastLogin,
+                    previousLogin: user.previousLogin,
+                    createdAt: user.createdAt,
+                    isActive: user.isActive
                 }));
+
+                // Save updated profile data
+                this.updateUserProfile(user.id, userProfile);
 
                 return { user, session, profile: userProfile };
             }
@@ -823,7 +856,7 @@
                 };
             }
 
-            // Check session validity (In Next.js: middleware)
+            // Check session validity with comprehensive data restoration (In Next.js: middleware)
             checkSession() {
                 const sessionId = localStorage.getItem('sessionId');
                 if (!sessionId) return null;
@@ -836,8 +869,28 @@
 
                 const userData = localStorage.getItem('user');
                 if (userData) {
-                    this.currentUser = JSON.parse(userData);
-                    return this.currentUser;
+                    try {
+                        const parsedUser = JSON.parse(userData);
+                        
+                        // Convert date strings back to Date objects for proper handling
+                        if (parsedUser.lastLogin) parsedUser.lastLogin = new Date(parsedUser.lastLogin);
+                        if (parsedUser.previousLogin) parsedUser.previousLogin = new Date(parsedUser.previousLogin);
+                        if (parsedUser.createdAt) parsedUser.createdAt = new Date(parsedUser.createdAt);
+                        
+                        this.currentUser = parsedUser;
+                        
+                        // Restore user profile data and update activity
+                        const userProfile = this.getUserProfile(parsedUser.id);
+                        userProfile.lastActivity = new Date();
+                        userProfile.sessionRestored = new Date();
+                        this.updateUserProfile(parsedUser.id, userProfile);
+                        
+                        return this.currentUser;
+                    } catch (error) {
+                        console.error('Error parsing stored user data:', error);
+                        this.logout();
+                        return null;
+                    }
                 }
 
                 return null;
@@ -1273,6 +1326,20 @@
                 queueManager.showNotification(`Welcome back, ${user.firstName}!`);
             } else {
                 showAuthPages();
+                
+                // Pre-fill login form with last logged out user's email for easy re-login
+                setTimeout(() => {
+                    const lastLoggedOutUser = localStorage.getItem('lastLoggedOutUser');
+                    if (lastLoggedOutUser) {
+                        document.getElementById('loginEmail').value = lastLoggedOutUser;
+                        document.getElementById('loginPassword').focus();
+                        
+                        // Get user's name from stored users for personalized message
+                        const userData = authManager.users.get(lastLoggedOutUser);
+                        const userName = userData ? userData.firstName : 'User';
+                        queueManager.showNotification(`👋 Welcome back! Email ready for ${userName}. Just enter your password.`);
+                    }
+                }, 300);
             }
 
             initializeEventListeners();
@@ -1344,29 +1411,44 @@
             try {
                 const { user, profile } = await authManager.login(email, password);
                 
-                // Show success message with user stats
-                const loginMessage = user.loginCount === 1 ? 
-                    `Welcome to LiveLine, ${user.firstName}!` : 
-                    `Welcome back, ${user.firstName}! (Login #${user.loginCount})`;
+                // Enhanced welcome message with comprehensive user data
+                const isFirstLogin = user.loginCount === 1;
+                const roleMessage = user.role === 'admin' ? 'Admin Dashboard' : 'Customer Portal';
+                const loginMessage = isFirstLogin ? 
+                    `🎉 Welcome to LiveLine ${roleMessage}, ${user.firstName}! Your account is now active.` : 
+                    `👋 Welcome back to ${roleMessage}, ${user.firstName}! Login #${user.loginCount}`;
                 
                 queueManager.showNotification(loginMessage);
                 
-                // Clear login form
+                // Clear login form completely and remove last logged out user since they're now logged in
                 document.getElementById('loginForm').reset();
+                localStorage.removeItem('lastLoggedOutUser');
                 
-                // Show main app with all user data loaded
+                // Show main app with all user data loaded and preserved
                 showMainApp(user);
                 
-                // Load user's active tickets if any
+                // Restore user's active session data
                 const activeTicket = queueManager.getUserTicket(user.id);
                 if (activeTicket) {
                     selectedService = activeTicket.service;
                     selectService(activeTicket.service);
-                    queueManager.showNotification(`You have an active ticket: ${activeTicket.ticketNumber}`);
+                    
+                    // Show detailed ticket restoration message
+                    setTimeout(() => {
+                        queueManager.showNotification(`🎫 Active ticket restored: ${activeTicket.ticketNumber} in ${activeTicket.service} queue`);
+                    }, 1500);
+                }
+                
+                // Show account statistics for returning users
+                if (!isFirstLogin && profile.statistics.totalTickets > 0) {
+                    setTimeout(() => {
+                        const stats = profile.statistics;
+                        queueManager.showNotification(`📊 Your stats: ${stats.totalTickets} total tickets, ${stats.completedTickets} completed, ${stats.averageWaitTime}min avg wait`);
+                    }, 2500);
                 }
                 
             } catch (error) {
-                queueManager.showNotification(`Login failed: ${error.message}`);
+                queueManager.showNotification(`❌ Login failed: ${error.message}`);
             }
         }
 
@@ -1386,21 +1468,28 @@
             try {
                 const result = await authManager.signup(userData);
                 
-                // Always redirect to login page after successful signup
-                if (result.needsApproval) {
-                    queueManager.showNotification('Admin account created successfully! Please sign in to continue.');
-                } else {
-                    queueManager.showNotification('Account created successfully! Please sign in to continue.');
-                }
+                // Enhanced success messaging with account details
+                const successMessage = result.needsApproval ? 
+                    `Admin account created for ${userData.firstName}! Please sign in to access your dashboard.` :
+                    `Welcome ${userData.firstName}! Your account has been created successfully. Please sign in to continue.`;
                 
-                // Clear the signup form
+                queueManager.showNotification(successMessage);
+                
+                // Clear the signup form completely
                 document.getElementById('signupForm').reset();
                 
-                // Pre-fill login form with the email
+                // Pre-fill login form with the registered email for convenience
                 document.getElementById('loginEmail').value = userData.email;
+                document.getElementById('loginEmail').focus();
                 
-                // Redirect to login page
-                showLoginPage();
+                // Smooth transition to login page with animation
+                setTimeout(() => {
+                    showLoginPage();
+                    // Show helpful hint about pre-filled email
+                    setTimeout(() => {
+                        queueManager.showNotification(`Email pre-filled for ${userData.firstName}. Enter your password to sign in.`);
+                    }, 500);
+                }, 300);
                 
             } catch (error) {
                 queueManager.showNotification(`Signup failed: ${error.message}`);
@@ -1408,9 +1497,53 @@
         }
 
         function handleLogout() {
+            const user = authManager.currentUser;
+            const userName = user ? user.firstName : 'User';
+            const userEmail = user ? user.email : '';
+            
+            // Update user profile with logout timestamp
+            if (user) {
+                const userProfile = authManager.getUserProfile(user.id);
+                userProfile.lastLogout = new Date();
+                if (userProfile.currentSession) {
+                    userProfile.currentSession.isActive = false;
+                    userProfile.currentSession.logoutTime = new Date();
+                }
+                authManager.updateUserProfile(user.id, userProfile);
+            }
+            
+            // Clear any active tickets for the user
+            if (user && queueManager.getUserTicket(user.id)) {
+                const activeTicket = queueManager.getUserTicket(user.id);
+                queueManager.leaveQueue(activeTicket.service, user.id);
+            }
+            
+            // Store last logged out user email for easy re-login
+            if (userEmail) {
+                localStorage.setItem('lastLoggedOutUser', userEmail);
+            }
+            
+            // Perform logout
             authManager.logout();
-            queueManager.showNotification('Logged out successfully');
+            
+            // Reset application state
+            selectedService = null;
+            currentAdminService = 'bank';
+            
+            // Show personalized logout message
+            queueManager.showNotification(`👋 Goodbye ${userName}! Sign in again anytime with your saved credentials.`);
+            
+            // Return to authentication pages with pre-filled email
             showAuthPages();
+            
+            // Pre-fill login form with last user's email for easy re-login
+            setTimeout(() => {
+                if (userEmail) {
+                    document.getElementById('loginEmail').value = userEmail;
+                    document.getElementById('loginPassword').focus();
+                    queueManager.showNotification(`Welcome back! Email pre-filled for ${userName}. Enter your password to continue.`);
+                }
+            }, 500);
         }
 
         // UI Navigation
@@ -1474,10 +1607,47 @@
             document.getElementById('signupPage').classList.remove('hidden');
         }
 
-        // Demo login helper
+        // Demo login helpers
         function fillLogin(email, password) {
             document.getElementById('loginEmail').value = email;
             document.getElementById('loginPassword').value = password;
+            document.getElementById('loginPassword').focus();
+        }
+
+        // Quick login function for instant access
+        async function quickLogin(email, password) {
+            try {
+                // Fill the form first
+                document.getElementById('loginEmail').value = email;
+                document.getElementById('loginPassword').value = password;
+                
+                // Show loading state
+                queueManager.showNotification('🔄 Logging you in...');
+                
+                // Perform login
+                const { user, profile } = await authManager.login(email, password);
+                
+                // Enhanced welcome message with role-based redirect
+                const roleMessage = user.role === 'admin' ? 'Admin Dashboard' : 'Customer Portal';
+                queueManager.showNotification(`✅ Welcome to ${roleMessage}, ${user.firstName}!`);
+                
+                // Clear form and redirect
+                document.getElementById('loginForm').reset();
+                localStorage.removeItem('lastLoggedOutUser');
+                showMainApp(user);
+                
+                // Show role-specific welcome message
+                setTimeout(() => {
+                    if (user.role === 'admin') {
+                        queueManager.showNotification('🛠️ Admin tools loaded. Manage queues and monitor activity.');
+                    } else {
+                        queueManager.showNotification('🎫 Ready to join queues! Select a service to get started.');
+                    }
+                }, 1500);
+                
+            } catch (error) {
+                queueManager.showNotification(`❌ Quick login failed: ${error.message}`);
+            }
         }
 
         // Customer Interface Functions
@@ -1687,12 +1857,34 @@
                 html += `
                     <div class="bg-green-100 border-l-4 border-green-500 p-4 rounded-lg mb-4 fade-in">
                         <div class="flex justify-between items-center">
-                            <div>
-                                <span class="font-semibold text-green-800">🔄 Now Serving: ${queue.currentlyServing.ticketNumber}</span>
-                                <p class="text-sm text-green-600">Customer: ${queue.currentlyServing.userName}</p>
-                                <p class="text-sm text-green-600">Started: ${queue.currentlyServing.joinedAt.toLocaleTimeString()}</p>
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <span class="font-semibold text-green-800 text-lg">🔄 Now Serving: ${queue.currentlyServing.ticketNumber}</span>
+                                    <span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">In Service</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                        <span class="font-medium text-green-700">👤 Name:</span>
+                                        <span class="text-green-600 ml-1">${queue.currentlyServing.userName}</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-green-700">📧 Email:</span>
+                                        <span class="text-green-600 ml-1">${queue.currentlyServing.userEmail}</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-green-700">📱 Phone:</span>
+                                        <span class="text-green-600 ml-1">${queue.currentlyServing.userPhone || 'Not provided'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-green-700">🕐 Started:</span>
+                                        <span class="text-green-600 ml-1">${queue.currentlyServing.joinedAt.toLocaleTimeString()}</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-green-700">⏱️ Duration:</span>
+                                        <span class="text-green-600 ml-1">${Math.round((new Date() - queue.currentlyServing.joinedAt) / 60000)} min</span>
+                                    </div>
+                                </div>
                             </div>
-                            <span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm">In Service</span>
                         </div>
                     </div>
                 `;
@@ -1700,19 +1892,63 @@
             
             // Waiting customers
             html += queue.customers.map((customer, index) => `
-                <div class="bg-white border rounded-lg p-4 mb-2 flex justify-between items-center slide-in">
-                    <div>
-                        <span class="font-medium">${customer.ticketNumber}</span>
-                        <p class="text-sm text-gray-600">Customer: ${customer.userName}</p>
-                        <p class="text-sm text-gray-600">Joined: ${customer.joinedAt.toLocaleTimeString()}</p>
-                        <p class="text-xs text-orange-600">Est. wait: ${(index + 1) * queue.averageServiceTime} min</p>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">Position ${index + 1}</span>
-                        <button onclick="removeCustomer('${currentAdminService}', '${customer.id}')" 
-                                class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm transition-colors">
-                            Remove
-                        </button>
+                <div class="bg-white border rounded-lg p-4 mb-3 slide-in hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="font-bold text-lg text-gray-900">${customer.ticketNumber}</span>
+                                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    Position ${index + 1}
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-3">
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">👤 Name:</span>
+                                    <span class="text-gray-900 ml-2 font-medium">${customer.userName}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">📧 Email:</span>
+                                    <span class="text-gray-600 ml-2">${customer.userEmail}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">📱 Phone:</span>
+                                    <span class="text-gray-600 ml-2">${customer.userPhone || 'Not provided'}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">🕐 Joined:</span>
+                                    <span class="text-gray-600 ml-2">${customer.joinedAt.toLocaleTimeString()}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">⏳ Waiting:</span>
+                                    <span class="text-orange-600 ml-2 font-medium">${Math.round((new Date() - customer.joinedAt) / 60000)} min</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-4 text-xs">
+                                <span class="bg-orange-50 text-orange-700 px-2 py-1 rounded">
+                                    Est. remaining: ${(index + 1) * queue.averageServiceTime} min
+                                </span>
+                                <span class="bg-gray-50 text-gray-600 px-2 py-1 rounded">
+                                    User ID: ${customer.userId}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col space-y-2 ml-4">
+                            <button onclick="callSpecificCustomer('${currentAdminService}', '${customer.id}')" 
+                                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm transition-colors font-medium">
+                                📞 Call Now
+                            </button>
+                            <button onclick="removeCustomer('${currentAdminService}', '${customer.id}')" 
+                                    class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm transition-colors">
+                                🗑️ Remove
+                            </button>
+                            <button onclick="viewCustomerDetails('${customer.userId}')" 
+                                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition-colors">
+                                👁️ Details
+                            </button>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -1793,6 +2029,182 @@
             }
             
             queueManager.showNotification('Customer removed from queue');
+        }
+
+        // Call specific customer (skip queue)
+        function callSpecificCustomer(service, customerId) {
+            const queue = queueManager.queues.get(service);
+            const customerIndex = queue.customers.findIndex(c => c.id === customerId);
+            
+            if (customerIndex !== -1) {
+                const customer = queue.customers.splice(customerIndex, 1)[0];
+                queue.currentlyServing = customer;
+                queue.lastUpdated = new Date();
+                
+                // Update user ticket status
+                if (customer.userId) {
+                    queueManager.userTickets.delete(customer.userId);
+                    
+                    // Update user profile history
+                    const userProfile = authManager.getUserProfile(customer.userId);
+                    if (userProfile.ticketHistory) {
+                        const historyItem = userProfile.ticketHistory.find(h => h.id === customer.id);
+                        if (historyItem) {
+                            historyItem.status = 'being_served';
+                            historyItem.calledAt = new Date();
+                        }
+                    }
+                    authManager.updateUserProfile(customer.userId, userProfile);
+                }
+                
+                queueManager.saveQueuesToStorage();
+                queueManager.broadcastQueueUpdate();
+                queueManager.showNotification(`Now serving: ${customer.ticketNumber} (${customer.userName})`);
+                
+                // Simulate service completion
+                setTimeout(() => {
+                    queueManager.completeService(service, customer);
+                }, queue.averageServiceTime * 1000);
+            }
+        }
+
+        // View detailed customer information
+        function viewCustomerDetails(userId) {
+            const user = Array.from(authManager.users.values()).find(u => u.id === userId);
+            const userProfile = authManager.getUserProfile(userId);
+            
+            if (!user) {
+                queueManager.showNotification('Customer details not found');
+                return;
+            }
+            
+            const stats = userProfile.statistics;
+            const recentTickets = userProfile.ticketHistory ? userProfile.ticketHistory.slice(-5) : [];
+            
+            const detailsHtml = `
+                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeCustomerDetails()">
+                    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto" onclick="event.stopPropagation()">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-900">Customer Details</h2>
+                            <button onclick="closeCustomerDetails()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="space-y-3">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Personal Information</h3>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">👤 Full Name:</span>
+                                        <span class="font-medium">${user.firstName} ${user.lastName}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">📧 Email:</span>
+                                        <span class="font-medium">${user.email}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">📱 Phone:</span>
+                                        <span class="font-medium">${user.phone || 'Not provided'}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">📅 Member Since:</span>
+                                        <span class="font-medium">${new Date(user.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">🔐 Last Login:</span>
+                                        <span class="font-medium">${user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">🔢 Login Count:</span>
+                                        <span class="font-medium">${user.loginCount || 0}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Queue Statistics</h3>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">🎫 Total Tickets:</span>
+                                        <span class="font-medium text-blue-600">${stats.totalTickets || 0}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">✅ Completed:</span>
+                                        <span class="font-medium text-green-600">${stats.completedTickets || 0}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">❌ Cancelled:</span>
+                                        <span class="font-medium text-red-600">${stats.cancelledTickets || 0}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">⏱️ Avg Wait:</span>
+                                        <span class="font-medium text-orange-600">${stats.averageWaitTime || 0} min</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">❤️ Favorite Service:</span>
+                                        <span class="font-medium text-purple-600">${stats.favoriteService || 'None'}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">🕐 Total Wait Time:</span>
+                                        <span class="font-medium">${stats.totalWaitTime || 0} min</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Recent Ticket History</h3>
+                            <div class="space-y-2 max-h-32 overflow-y-auto">
+                                ${recentTickets.length > 0 ? recentTickets.reverse().map(ticket => {
+                                    const statusColors = {
+                                        'active': 'bg-blue-100 text-blue-800',
+                                        'being_served': 'bg-yellow-100 text-yellow-800',
+                                        'completed': 'bg-green-100 text-green-800',
+                                        'cancelled': 'bg-red-100 text-red-800'
+                                    };
+                                    return `
+                                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                            <div>
+                                                <span class="font-medium">${ticket.ticketNumber}</span>
+                                                <span class="text-gray-600 ml-2">${ticket.service}</span>
+                                                <span class="text-xs text-gray-500 ml-2">${new Date(ticket.joinedAt).toLocaleDateString()}</span>
+                                            </div>
+                                            <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[ticket.status]}">
+                                                ${ticket.status.replace('_', ' ').toUpperCase()}
+                                            </span>
+                                        </div>
+                                    `;
+                                }).join('') : '<p class="text-gray-500 text-center py-4">No recent tickets</p>'}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button onclick="contactCustomer('${user.email}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                📧 Contact Customer
+                            </button>
+                            <button onclick="closeCustomerDetails()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', detailsHtml);
+        }
+
+        // Close customer details modal
+        function closeCustomerDetails() {
+            const modal = document.querySelector('.fixed.inset-0.bg-black');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Contact customer (demo function)
+        function contactCustomer(email) {
+            queueManager.showNotification(`📧 Email client opened for ${email}`);
+            // In real app: window.open(`mailto:${email}`)
+            closeCustomerDetails();
         }
 
         function updateCurrentTime() {
@@ -2057,5 +2469,5 @@
         the full Next.js application with all the features demonstrated!
         */
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97115be5f6af919e',t:'MTc1NTUxOTU2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971188e8e4b9599c',t:'MTc1NTUyMTQwNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
