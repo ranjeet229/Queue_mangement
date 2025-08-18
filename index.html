@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveLine - Real-Time Queue Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .notification {
+            animation: notification 0.5s ease-out;
+        }
+        
+        @keyframes notification {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b-4 border-blue-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">LL</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-900">LiveLine</h1>
+                    <span class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Real-Time Queue Management</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-green-500 rounded-full pulse-animation"></div>
+                        <span class="text-sm text-gray-600">Live Updates</span>
+                    </div>
+                    <button id="toggleView" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        Switch to Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- User View -->
+        <div id="userView" class="space-y-8">
+            <!-- Service Selection -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Select Service</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button onclick="selectService('hospital')" class="service-btn p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                        <div class="text-3xl mb-2">🏥</div>
+                        <h3 class="font-medium text-gray-900">Hospital</h3>
+                        <p class="text-sm text-gray-500">General Consultation</p>
+                    </button>
+                    <button onclick="selectService('bank')" class="service-btn p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                        <div class="text-3xl mb-2">🏦</div>
+                        <h3 class="font-medium text-gray-900">Bank</h3>
+                        <p class="text-sm text-gray-500">Customer Service</p>
+                    </button>
+                    <button onclick="selectService('government')" class="service-btn p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                        <div class="text-3xl mb-2">🏛️</div>
+                        <h3 class="font-medium text-gray-900">Government</h3>
+                        <p class="text-sm text-gray-500">Document Services</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Queue Status -->
+            <div id="queueStatus" class="hidden bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900">Queue Status</h2>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-green-500 rounded-full pulse-animation"></div>
+                        <span class="text-sm text-green-600 font-medium">Live</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Current Status -->
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                        <h3 class="text-lg font-medium mb-4">Your Token</h3>
+                        <div class="text-center">
+                            <div id="userToken" class="text-4xl font-bold mb-2">-</div>
+                            <div id="userStatus" class="text-blue-100">Join queue to get token</div>
+                        </div>
+                    </div>
+
+                    <!-- Queue Info -->
+                    <div class="space-y-4">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Currently Serving</span>
+                                <span id="currentServing" class="font-bold text-lg text-green-600">-</span>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">People Ahead</span>
+                                <span id="peopleAhead" class="font-bold text-lg text-orange-600">-</span>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Estimated Wait</span>
+                                <span id="estimatedWait" class="font-bold text-lg text-blue-600">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex space-x-4">
+                    <button id="joinQueueBtn" onclick="joinQueue()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
+                        Join Queue
+                    </button>
+                    <button id="leaveQueueBtn" onclick="leaveQueue()" class="hidden flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
+                        Leave Queue
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Queue Display -->
+            <div id="liveQueue" class="hidden bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Live Queue</h3>
+                <div id="queueList" class="space-y-2 max-h-64 overflow-y-auto">
+                    <!-- Queue items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="adminView" class="hidden space-y-8">
+            <!-- Admin Dashboard -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900">Admin Dashboard</h2>
+                    <div class="flex items-center space-x-4">
+                        <select id="adminService" onchange="switchAdminService()" class="border border-gray-300 rounded-lg px-3 py-2">
+                            <option value="hospital">Hospital</option>
+                            <option value="bank">Bank</option>
+                            <option value="government">Government</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-blue-600" id="totalInQueue">0</div>
+                        <div class="text-sm text-gray-600">Total in Queue</div>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-green-600" id="currentlyServing">-</div>
+                        <div class="text-sm text-gray-600">Currently Serving</div>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-orange-600" id="avgWaitTime">5</div>
+                        <div class="text-sm text-gray-600">Avg Wait (min)</div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-purple-600" id="servedToday">12</div>
+                        <div class="text-sm text-gray-600">Served Today</div>
+                    </div>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button onclick="callNext()" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
+                        Call Next Token
+                    </button>
+                    <button onclick="markCompleted()" class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
+                        Mark Current Complete
+                    </button>
+                    <button onclick="pauseQueue()" id="pauseBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
+                        Pause Queue
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Queue Management -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Queue Management</h3>
+                <div id="adminQueueList" class="space-y-2 max-h-96 overflow-y-auto">
+                    <!-- Admin queue items will be populated here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="hidden fixed top-4 right-4 bg-white border-l-4 border-blue-500 rounded-lg shadow-lg p-4 max-w-sm notification">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span class="text-white text-xs">!</span>
+                </div>
+            </div>
+            <div class="ml-3">
+                <p id="notificationText" class="text-sm font-medium text-gray-900"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentView = 'user';
+        let selectedService = null;
+        let userToken = null;
+        let isInQueue = false;
+        let currentAdminService = 'hospital';
+        
+        // Mock data for different services
+        const serviceData = {
+            hospital: {
+                name: 'Hospital - General Consultation',
+                currentServing: 'H015',
+                queue: ['H016', 'H017', 'H018', 'H019', 'H020'],
+                nextToken: 21,
+                avgWaitTime: 8
+            },
+            bank: {
+                name: 'Bank - Customer Service',
+                currentServing: 'B032',
+                queue: ['B033', 'B034', 'B035'],
+                nextToken: 36,
+                avgWaitTime: 5
+            },
+            government: {
+                name: 'Government - Document Services',
+                currentServing: 'G008',
+                queue: ['G009', 'G010', 'G011', 'G012', 'G013', 'G014'],
+                nextToken: 15,
+                avgWaitTime: 12
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDisplay();
+            // Simulate real-time updates
+            setInterval(simulateRealTimeUpdates, 3000);
+        });
+
+        function selectService(service) {
+            selectedService = service;
+            document.querySelectorAll('.service-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50');
+                btn.classList.add('border-gray-200');
+            });
+            event.target.closest('.service-btn').classList.add('border-blue-500', 'bg-blue-50');
+            
+            document.getElementById('queueStatus').classList.remove('hidden');
+            document.getElementById('liveQueue').classList.remove('hidden');
+            updateQueueDisplay();
+            showNotification(`Selected ${serviceData[service].name}`);
+        }
+
+        function joinQueue() {
+            if (!selectedService || isInQueue) return;
+            
+            const service = serviceData[selectedService];
+            const tokenPrefix = selectedService.charAt(0).toUpperCase();
+            userToken = `${tokenPrefix}${String(service.nextToken).padStart(3, '0')}`;
+            service.queue.push(userToken);
+            service.nextToken++;
+            isInQueue = true;
+            
+            document.getElementById('joinQueueBtn').classList.add('hidden');
+            document.getElementById('leaveQueueBtn').classList.remove('hidden');
+            
+            updateQueueDisplay();
+            showNotification(`Joined queue! Your token: ${userToken}`);
+        }
+
+        function leaveQueue() {
+            if (!isInQueue || !userToken) return;
+            
+            const service = serviceData[selectedService];
+            const index = service.queue.indexOf(userToken);
+            if (index > -1) {
+                service.queue.splice(index, 1);
+            }
+            
+            isInQueue = false;
+            userToken = null;
+            
+            document.getElementById('joinQueueBtn').classList.remove('hidden');
+            document.getElementById('leaveQueueBtn').classList.add('hidden');
+            
+            updateQueueDisplay();
+            showNotification('Left the queue');
+        }
+
+        function updateQueueDisplay() {
+            if (!selectedService) return;
+            
+            const service = serviceData[selectedService];
+            
+            // Update user token display
+            document.getElementById('userToken').textContent = userToken || '-';
+            document.getElementById('userStatus').textContent = userToken ? 
+                (userToken === service.currentServing ? 'Your turn!' : 'In queue') : 
+                'Join queue to get token';
+            
+            // Update queue info
+            document.getElementById('currentServing').textContent = service.currentServing;
+            
+            const peopleAhead = userToken ? service.queue.indexOf(userToken) : 0;
+            document.getElementById('peopleAhead').textContent = peopleAhead >= 0 ? peopleAhead : '-';
+            
+            const estimatedWait = peopleAhead > 0 ? `${peopleAhead * service.avgWaitTime} min` : 
+                                 userToken === service.currentServing ? 'Your turn!' : '-';
+            document.getElementById('estimatedWait').textContent = estimatedWait;
+            
+            // Update live queue
+            const queueList = document.getElementById('queueList');
+            queueList.innerHTML = '';
+            
+            // Add currently serving
+            const currentDiv = document.createElement('div');
+            currentDiv.className = 'flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg';
+            currentDiv.innerHTML = `
+                <span class="font-medium text-green-800">${service.currentServing}</span>
+                <span class="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">Currently Serving</span>
+            `;
+            queueList.appendChild(currentDiv);
+            
+            // Add queue items
+            service.queue.forEach((token, index) => {
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between p-3 rounded-lg slide-in ${
+                    token === userToken ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                }`;
+                div.innerHTML = `
+                    <span class="font-medium ${token === userToken ? 'text-blue-800' : 'text-gray-800'}">${token}</span>
+                    <span class="text-sm text-gray-500">Position ${index + 1}</span>
+                `;
+                queueList.appendChild(div);
+            });
+        }
+
+        function toggleView() {
+            currentView = currentView === 'user' ? 'admin' : 'user';
+            document.getElementById('userView').classList.toggle('hidden');
+            document.getElementById('adminView').classList.toggle('hidden');
+            document.getElementById('toggleView').textContent = 
+                currentView === 'user' ? 'Switch to Admin' : 'Switch to User';
+            
+            if (currentView === 'admin') {
+                updateAdminDisplay();
+            }
+        }
+
+        function updateAdminDisplay() {
+            const service = serviceData[currentAdminService];
+            
+            document.getElementById('totalInQueue').textContent = service.queue.length;
+            document.getElementById('currentlyServing').textContent = service.currentServing;
+            document.getElementById('avgWaitTime').textContent = service.avgWaitTime;
+            
+            // Update admin queue list
+            const adminQueueList = document.getElementById('adminQueueList');
+            adminQueueList.innerHTML = '';
+            
+            // Currently serving
+            const currentDiv = document.createElement('div');
+            currentDiv.className = 'flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg';
+            currentDiv.innerHTML = `
+                <div>
+                    <span class="font-medium text-green-800">${service.currentServing}</span>
+                    <span class="text-sm text-green-600 ml-2">Currently Serving</span>
+                </div>
+                <button onclick="markCompleted()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                    Complete
+                </button>
+            `;
+            adminQueueList.appendChild(currentDiv);
+            
+            // Queue items
+            service.queue.forEach((token, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-4 bg-gray-50 rounded-lg';
+                div.innerHTML = `
+                    <div>
+                        <span class="font-medium text-gray-800">${token}</span>
+                        <span class="text-sm text-gray-500 ml-2">Position ${index + 1}</span>
+                    </div>
+                    <div class="space-x-2">
+                        <button onclick="callSpecific('${token}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
+                            Call Now
+                        </button>
+                        <button onclick="removeFromQueue('${token}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
+                            Remove
+                        </button>
+                    </div>
+                `;
+                adminQueueList.appendChild(div);
+            });
+        }
+
+        function callNext() {
+            const service = serviceData[currentAdminService];
+            if (service.queue.length === 0) {
+                showNotification('No one in queue');
+                return;
+            }
+            
+            service.currentServing = service.queue.shift();
+            updateAdminDisplay();
+            updateDisplay();
+            showNotification(`Called ${service.currentServing}`);
+            
+            // Simulate notification to user
+            if (userToken === service.currentServing) {
+                setTimeout(() => {
+                    showNotification('Your turn! Please proceed to the counter.');
+                }, 1000);
+            }
+        }
+
+        function markCompleted() {
+            const service = serviceData[currentAdminService];
+            showNotification(`${service.currentServing} marked as completed`);
+            document.getElementById('servedToday').textContent = 
+                parseInt(document.getElementById('servedToday').textContent) + 1;
+        }
+
+        function callSpecific(token) {
+            const service = serviceData[currentAdminService];
+            const index = service.queue.indexOf(token);
+            if (index > -1) {
+                service.queue.splice(index, 1);
+                service.currentServing = token;
+                updateAdminDisplay();
+                updateDisplay();
+                showNotification(`Called ${token}`);
+            }
+        }
+
+        function removeFromQueue(token) {
+            const service = serviceData[currentAdminService];
+            const index = service.queue.indexOf(token);
+            if (index > -1) {
+                service.queue.splice(index, 1);
+                updateAdminDisplay();
+                updateDisplay();
+                showNotification(`Removed ${token} from queue`);
+            }
+        }
+
+        function switchAdminService() {
+            currentAdminService = document.getElementById('adminService').value;
+            updateAdminDisplay();
+        }
+
+        function pauseQueue() {
+            const btn = document.getElementById('pauseBtn');
+            if (btn.textContent === 'Pause Queue') {
+                btn.textContent = 'Resume Queue';
+                btn.className = 'bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-medium transition-colors';
+                showNotification('Queue paused');
+            } else {
+                btn.textContent = 'Pause Queue';
+                btn.className = 'bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-6 rounded-lg font-medium transition-colors';
+                showNotification('Queue resumed');
+            }
+        }
+
+        function simulateRealTimeUpdates() {
+            // Randomly add new people to queues
+            Object.keys(serviceData).forEach(service => {
+                if (Math.random() < 0.3) { // 30% chance
+                    const data = serviceData[service];
+                    const prefix = service.charAt(0).toUpperCase();
+                    const newToken = `${prefix}${String(data.nextToken).padStart(3, '0')}`;
+                    data.queue.push(newToken);
+                    data.nextToken++;
+                }
+            });
+            
+            updateDisplay();
+            if (currentView === 'admin') {
+                updateAdminDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            if (selectedService) {
+                updateQueueDisplay();
+            }
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const text = document.getElementById('notificationText');
+            text.textContent = message;
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Event listeners
+        document.getElementById('toggleView').addEventListener('click', toggleView);
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'970fda9897071b6e',t:'MTc1NTUwMzc3OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
